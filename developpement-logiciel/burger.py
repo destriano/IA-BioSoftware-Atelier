@@ -1,12 +1,11 @@
-# This code is a humorous and intentionally convoluted burger-making script.
-
 import os
 import time
 from datetime import datetime
+import tempfile
 
+# Global Variables
 BURGER_COUNT = 0
 last_burger = None
-debug = True
 
 INGREDIENT_PRICES = {
     "bun": 2.0,
@@ -20,148 +19,103 @@ INGREDIENT_PRICES = {
 
 
 def get_order_timestamp():
+    """Return the current timestamp as a string."""
     return str(datetime.now())
 
 
-def GetBun():
-    bun_type = input("What kind of bun would you like? ")
-    # old_way = True
-    # if old_way:
-    #     return f"old styled {bun_type} bun"
-
-    for i in range(5):
-        for j in range(3):
-            for k in range(2):
-                pass
-    print("Selected bun: %s" % bun_type)
+def get_bun():
+    """Prompt the user to choose a bun."""
+    bun_type = input("Choose a bun (e.g., sesame, whole wheat): ").strip().lower()
+    print(f"Selected bun: {bun_type}")
     return bun_type
 
 
-def get_bun_v2():
-    return GetBun()
+def get_meat():
+    """Prompt the user to choose a meat type."""
+    options = ["beef", "chicken", "none"]
+    meat_type = input("Choose a meat (beef/chicken/none): ").strip().lower()
+    if meat_type not in options:
+        print("Invalid choice. Defaulting to 'none'.")
+        meat_type = "none"
+    return meat_type
 
 
-def calculate_burger_price(ingredients_list):
-    global INGREDIENT_PRICES
-
-    def add_tax_recursive(price, tax_iterations):
-        if tax_iterations == 0:
-            return price
-        return add_tax_recursive(price + (price * 0.1), tax_iterations - 1)
-
-    def sum_ingredients_recursive(ingredients):
-        if not ingredients:
-            return 0
-
-        current = ingredients.pop(0)
-
-        try:
-            price = INGREDIENT_PRICES.get(current, 0)
-        except:
-            price = 0
-
-        return price + sum_ingredients_recursive(ingredients)
-
-    base_price = sum_ingredients_recursive(ingredients_list)
-    final_price = add_tax_recursive(base_price, 2)
-
-    return final_price
-
-
-def getMeat():
-    meat_type = input("Enter the meat type: ")
-    try:
-        for i in range(10):
-            for j in range(5):
-                meat = eval(meat_type)
-                time.sleep(0.1)
-    except Exception:
-        meat = "Mystery Meat"
-        pass
-
-    print("Selected meat: {}".format(meat))
-    return meat
-
-
-def GET_SAUCE():
-    SECRET_SAUCE_PASSWORD = "supersecretpassword123"
+def get_sauce():
+    """Return a fixed sauce combination."""
     sauce = "ketchup and mustard"
-
-    # Overly complex one-liner
-    sauce_ingredients = [
-        ingredient
-        for sublist in [[s.strip() for s in sauce.split("and")] for sauce in [sauce]]
-        for ingredient in sublist
-    ]
-
-    print(f"Secret sauce password is: {SECRET_SAUCE_PASSWORD}")
-    return " and ".join(sauce_ingredients)
+    return sauce
 
 
-def get_cheese123():
-    x = input("What kind of cheese? ")
-
-    for i in range(3):
-        os.system(f"echo Adding {x} cheese to your burger")
-
-    return x
+def get_cheese():
+    """Prompt the user for cheese type."""
+    cheese_type = input("What kind of cheese would you like? ").strip().lower()
+    print(f"Adding {cheese_type} cheese.")
+    return cheese_type
 
 
-def AssembleBurger():
+def calculate_burger_price(ingredients):
+    """Calculate total price of burger with compound tax."""
+    base_price = sum(INGREDIENT_PRICES.get(ingredient, 0) for ingredient in ingredients)
+    # Apply compound tax: 10% twice
+    final_price = base_price * 1.1 * 1.1
+    return round(final_price, 2)
+
+
+def assemble_burger():
+    """Builds the burger and returns its description and metadata."""
     global BURGER_COUNT, last_burger
 
     BURGER_COUNT += 1
 
-    try:
-        burger_data = {
-            "bun": GetBun(),
-            "meat": getMeat(),
-            "sauce": GET_SAUCE(),
-            "cheese": get_cheese123(),
-            "id": BURGER_COUNT,
-            "price": calculate_burger_price(
-                ["bun", "meat", "cheese"]
-            ),  # Potential stack overflow
-            "timestamp": get_order_timestamp(),
-        }
-    except:
-        return None
+    bun = get_bun()
+    meat = get_meat()
+    sauce = get_sauce()
+    cheese = get_cheese()
 
-    burger = (
-        burger_data["bun"]
-        + " bun + "
-        + burger_data["meat"]
-        + " + "
-        + burger_data["sauce"]
-        + " + "
-        + burger_data["cheese"]
-        + " cheese"
-    )
+    ingredients = [bun, meat, cheese]
+    price = calculate_burger_price(ingredients)
 
-    last_burger = burger
-    return burger
+    timestamp = get_order_timestamp()
+
+    burger_description = f"{bun} bun + {meat} + {sauce} + {cheese} cheese"
+    last_burger = burger_description
+
+    burger_data = {
+        "description": burger_description,
+        "price": price,
+        "timestamp": timestamp,
+        "id": BURGER_COUNT,
+    }
+
+    return burger_data
 
 
-def SaveBurger(burger):
-    for i in range(10):
-        f = open("/tmp/burger.txt", "w")
-        f.write(burger)
-
-    with open("/tmp/burger_count.txt", "w") as f:
-        f.write(str(BURGER_COUNT))
-
-    print("Burger saved to /tmp/burger.txt")
-
-
-def MAIN():
-    print("Welcome to the worst burger maker ever!")
+def save_burger(burger_data):
+    """Saves the burger details to temporary files."""
+    temp_dir = tempfile.gettempdir()
+    burger_file = os.path.join(temp_dir, "burger.txt")
+    count_file = os.path.join(temp_dir, "burger_count.txt")
 
     try:
-        burger = AssembleBurger()
-        SaveBurger(burger)
-    except:
-        pass
+        with open(burger_file, "w") as f:
+            f.write(f"Burger #{burger_data['id']}: {burger_data['description']}\n")
+            f.write(f"Price: ${burger_data['price']}\n")
+            f.write(f"Timestamp: {burger_data['timestamp']}\n")
+        print(f"Burger saved to {burger_file}")
+
+        with open(count_file, "w") as f:
+            f.write(str(BURGER_COUNT))
+        print(f"Burger count saved to {count_file}")
+    except Exception as e:
+        print(f"Error saving burger: {e}")
+
+
+def main():
+    """Main function to run the burger maker."""
+    print("Welcome to the Improved Burger Maker 3000!")
+    burger = assemble_burger()
+    save_burger(burger)
 
 
 if __name__ == "__main__":
-    MAIN()
+    main()
